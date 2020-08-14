@@ -4,42 +4,6 @@
 
 #include "socket.hh"
 
-std::task<> inside_loop(Socket& socket, bool& run)
-{
-    char buffer[42] = {0};
-    ssize_t nbRecv = co_await socket.recv(buffer, sizeof buffer);
-    ssize_t nbSend = 0;
-    while (nbSend < nbRecv)
-    {
-        ssize_t res = co_await socket.send(buffer, sizeof buffer);
-        if (res <= 0)
-        {
-            run = false;
-            co_return; // false
-        }
-        nbSend += res;
-    }
-    std::cout << "DONE (" << nbRecv << "):" << '\n';
-    if (nbRecv <= 0)
-    {
-        run = false;
-        co_return; // false
-    }
-    printf("%s\n", buffer);
-}
-
-std::task<> echo_socket(std::shared_ptr<Socket> socket)
-{
-    bool run = true;
-    while (run)
-    {
-        std::cout << "BEGIN\n";
-        co_await inside_loop(*socket, run);
-        std::cout << "END\n";
-    }
-}
-
-
 void IOContext::run()
 {
     struct epoll_event ev, events[max_events];
@@ -52,19 +16,11 @@ void IOContext::run()
         for (int n = 0; n < nfds; ++n)
         {
             auto socket = static_cast<Socket*>(events[n].data.ptr);
-            if (4 == socket->fd_) // tmp hack until have async accept
-            {
-                auto connSocket = socket->accept();
-                auto t = echo_socket(connSocket);
-                t.resume();
-            }
-            else
-            {
-                if (events[n].events & EPOLLIN)
-                    socket->resumeRecv();
-                if (events[n].events & EPOLLOUT)
-                    socket->resumeSend();
-            }
+
+            if (events[n].events & EPOLLIN)
+                socket->resumeRecv();
+            if (events[n].events & EPOLLOUT)
+                socket->resumeSend();
         }
         for (auto* socket : processedSockets)
         {

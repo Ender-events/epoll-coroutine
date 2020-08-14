@@ -26,6 +26,7 @@ Socket::Socket(std::string_view port, IOContext& io_context)
     if (bind(fd_, res->ai_addr, res->ai_addrlen) == -1)
         throw std::runtime_error{"bind"};
     listen(fd_, 8);
+    fcntl(fd_, F_SETFL, O_NONBLOCK);
     io_context_.attach(this);
     io_context_.watchRead(this);
 }
@@ -48,15 +49,12 @@ Socket::~Socket()
     close(fd_);
 }
 
-std::shared_ptr<Socket> Socket::accept()
+std::task<std::shared_ptr<Socket>> Socket::accept()
 {
-    struct sockaddr_storage their_addr;
-    socklen_t addr_size = sizeof their_addr;
-    int fd = ::accept(fd_, (struct sockaddr *) &their_addr,
-            &addr_size);
+    int fd = co_await SocketAcceptOperation{this};
     if (fd == -1)
         throw std::runtime_error{"accept"};
-    return std::shared_ptr<Socket>(new Socket{fd, io_context_});
+    co_return std::shared_ptr<Socket>(new Socket{fd, io_context_});
 }
 
 SocketRecvOperation Socket::recv(void* buffer, std::size_t len)

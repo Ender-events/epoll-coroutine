@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <sys/epoll.h>
 
+#include "socket_accept_operation.hh"
 #include "socket_recv_operation.hh"
 #include "socket_send_operation.hh"
 
@@ -29,6 +30,7 @@ private:
     std::set<Socket*> processedSockets;
 
     friend Socket;
+    friend SocketAcceptOperation;
     friend SocketRecvOperation;
     friend SocketSendOperation;
     void attach(Socket* socket);

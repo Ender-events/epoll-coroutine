@@ -6,6 +6,7 @@
 #include <string_view>
 
 #include "io_context.hh"
+#include "socket_accept_operation.hh"
 #include "socket_recv_operation.hh"
 #include "socket_send_operation.hh"
 #include "task.hh"
@@ -20,7 +21,7 @@ public:
 
     ~Socket();
 
-    std::shared_ptr<Socket> accept();
+    std::task<std::shared_ptr<Socket>> accept();
 
     SocketRecvOperation recv(void* buffer, std::size_t len);
     SocketSendOperation send(void* buffer, std::size_t len);
@@ -42,6 +43,7 @@ public:
     }
 
 private:
+    friend SocketAcceptOperation;
     friend SocketRecvOperation;
     friend SocketSendOperation;
     IOContext& io_context_;
