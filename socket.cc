@@ -15,9 +15,9 @@ Socket::Socket(std::string_view port, IOContext& io_context)
     struct addrinfo hints, *res;
 
     std::memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC;  // use IPv4 or IPv6, whichever
+    hints.ai_family = AF_UNSPEC; // use IPv4 or IPv6, whichever
     hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;     // fill in my IP for me
+    hints.ai_flags = AI_PASSIVE; // fill in my IP for me
 
     getaddrinfo(NULL, port.data(), &hints, &res);
     fd_ = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
@@ -49,8 +49,9 @@ Socket::~Socket()
     close(fd_);
 }
 
-std::task<std::shared_ptr<Socket>> Socket::accept()
+std::lazy<std::shared_ptr<Socket>> Socket::accept()
 {
+    std::cout << "co_await SocketAcceptOperation\n";
     int fd = co_await SocketAcceptOperation{this};
     if (fd == -1)
         throw std::runtime_error{"accept"};

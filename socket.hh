@@ -6,13 +6,12 @@
 #include <string_view>
 
 #include "io_context.hh"
+#include "lazy.hh"
 #include "socket_accept_operation.hh"
 #include "socket_recv_operation.hh"
 #include "socket_send_operation.hh"
-#include "task.hh"
 
-class Socket
-{
+class Socket {
 public:
     /* Listen tcp non blocking socket */
     Socket(std::string_view port, IOContext& io_context);
@@ -21,7 +20,7 @@ public:
 
     ~Socket();
 
-    std::task<std::shared_ptr<Socket>> accept();
+    std::lazy<std::shared_ptr<Socket>> accept();
 
     SocketRecvOperation recv(void* buffer, std::size_t len);
     SocketSendOperation send(void* buffer, std::size_t len);
@@ -41,6 +40,8 @@ public:
         coroSend_.resume();
         return true;
     }
+
+    IOContext& getContext() { return io_context_; }
 
 private:
     friend SocketAcceptOperation;

@@ -1,4 +1,4 @@
-CXX=g++-10
+CXX=g++-12
 LINK.o = $(LINK.cc)
 # CXXFLAGS=-Wall -Wextra -Werror -pedantic -std=c++20 -fcoroutines -g
 CXXFLAGS=-Wall -Wextra -Werror -pedantic -std=c++20 -fcoroutines -g -fsanitize=address

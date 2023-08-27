@@ -4,9 +4,7 @@
 
 #include "socket.hh"
 
-SocketRecvOperation::SocketRecvOperation(Socket* socket,
-        void* buffer,
-        std::size_t len)
+SocketRecvOperation::SocketRecvOperation(Socket* socket, void* buffer, std::size_t len)
     : BlockSyscall{}
     , socket{socket}
     , buffer_{buffer}
@@ -24,7 +22,7 @@ SocketRecvOperation::~SocketRecvOperation()
 
 ssize_t SocketRecvOperation::syscall()
 {
-    std::cout << "recv(" << socket->fd_ << ", buffer_, len_, 0)\n";
+    std::cout << "recv(" << socket->fd_ << ", buffer_, " << len_ << ", 0)\n";
     return recv(socket->fd_, buffer_, len_, 0);
 }
 

@@ -1,15 +1,14 @@
 #include "io_context.hh"
 #include "socket.hh"
 
-#include "task.hh"
+#include "lazy.hh"
 
-std::task<bool> inside_loop(Socket& socket)
+std::lazy<bool> inside_loop(Socket& socket)
 {
     char buffer[42] = {0};
-    ssize_t nbRecv = co_await socket.recv(buffer, sizeof buffer);
+    ssize_t nbRecv = co_await socket.recv(buffer, sizeof(buffer));
     ssize_t nbSend = 0;
-    while (nbSend < nbRecv)
-    {
+    while (nbSend < nbRecv) {
         ssize_t res = co_await socket.send(buffer, sizeof buffer);
         if (res <= 0)
             co_return false;
@@ -22,24 +21,24 @@ std::task<bool> inside_loop(Socket& socket)
     co_return true;
 }
 
-std::task<> echo_socket(std::shared_ptr<Socket> socket)
+std::lazy<> echo_socket(std::shared_ptr<Socket> socket)
 {
     bool run = true;
-    while (run)
-    {
+    while (run) {
         std::cout << "BEGIN\n";
         run = co_await inside_loop(*socket);
         std::cout << "END\n";
     }
 }
 
-std::task<> accept(Socket& listen)
+std::lazy<> accept(Socket& listen)
 {
-    while (true)
-    {
-        auto socket = co_await listen.accept();
+    while (true) {
+        auto task = listen.accept();
+        std::cout << "co_await task\n";
+        auto socket = co_await task;
         auto t = echo_socket(socket);
-        t.resume();
+        listen.getContext().spawn(std::move(t));
     }
 }
 
@@ -47,8 +46,7 @@ int main()
 {
     IOContext io_context{};
     Socket listen{"3490", io_context};
-    auto t = accept(listen);
-    t.resume();
+    io_context.spawn(accept(listen));
 
     io_context.run();
 }

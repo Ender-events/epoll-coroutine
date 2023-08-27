@@ -7,14 +7,12 @@
 void IOContext::run()
 {
     struct epoll_event ev, events[max_events];
-    for (;;)
-    {
+    for (;;) {
         auto nfds = epoll_wait(fd_, events, max_events, -1);
         if (nfds == -1)
             throw std::runtime_error{"epoll_wait"};
 
-        for (int n = 0; n < nfds; ++n)
-        {
+        for (int n = 0; n < nfds; ++n) {
             auto socket = static_cast<Socket*>(events[n].data.ptr);
 
             if (events[n].events & EPOLLIN)
@@ -22,8 +20,7 @@ void IOContext::run()
             if (events[n].events & EPOLLOUT)
                 socket->resumeSend();
         }
-        for (auto* socket : processedSockets)
-        {
+        for (auto* socket : processedSockets) {
             auto io_state = socket->io_new_state_;
             if (socket->io_state_ == io_state)
                 continue;
@@ -34,6 +31,13 @@ void IOContext::run()
             socket->io_state_ = io_state;
         }
     }
+}
+
+void IOContext::spawn(std::lazy<>&& task)
+{
+    [](std::lazy<> t) -> oneway_task {
+        co_await t;
+    }(std::move(task));
 }
 
 void IOContext::attach(Socket* socket)

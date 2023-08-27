@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lazy.hh"
 #include <set>
 #include <stdexcept>
 #include <sys/epoll.h>
@@ -11,8 +12,17 @@
 /* Just an epoll wrapper */
 class Socket;
 
-class IOContext
-{
+struct oneway_task {
+    struct promise_type {
+        std::suspend_never initial_suspend() noexcept { return {}; }
+        std::suspend_never final_suspend() noexcept { return {}; }
+        void unhandled_exception() { std::terminate(); }
+        oneway_task get_return_object() { return {}; }
+        void return_void() { }
+    };
+};
+
+class IOContext {
 public:
     IOContext()
         : fd_{epoll_create1(0)}
@@ -22,6 +32,8 @@ public:
     }
 
     void run();
+    void spawn(std::lazy<>&& task);
+
 private:
     constexpr static std::size_t max_events = 10;
     const int fd_;

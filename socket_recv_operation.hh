@@ -7,14 +7,14 @@
 
 class Socket;
 
-class SocketRecvOperation : public BlockSyscall<SocketRecvOperation, ssize_t>
-{
+class SocketRecvOperation : public BlockSyscall<SocketRecvOperation, ssize_t> {
 public:
     SocketRecvOperation(Socket* socket, void* buffer, std::size_t len);
     ~SocketRecvOperation();
 
     ssize_t syscall();
     void suspend();
+
 private:
     Socket* socket;
     void* buffer_;

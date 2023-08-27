@@ -6,13 +6,13 @@
 
 #include <iostream>
 
-template<typename SyscallOpt, typename ReturnValue>
-class BlockSyscall
-{
+template <typename SyscallOpt, typename ReturnValue>
+class BlockSyscall {
 public:
     BlockSyscall()
         : haveSuspend_{false}
-    {}
+    {
+    }
 
     bool await_ready() const noexcept { return false; }
 
@@ -21,8 +21,7 @@ public:
         static_assert(std::is_base_of_v<BlockSyscall, SyscallOpt>);
         awaitingCoroutine_ = awaitingCoroutine;
         returnValue_ = static_cast<SyscallOpt*>(this)->syscall();
-        haveSuspend_ =
-            returnValue_ == -1 && (errno == EAGAIN || errno == EWOULDBLOCK);
+        haveSuspend_ = returnValue_ == -1 && (errno == EAGAIN || errno == EWOULDBLOCK);
         if (haveSuspend_)
             static_cast<SyscallOpt*>(this)->suspend();
 
