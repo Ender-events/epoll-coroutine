@@ -1,0 +1,11 @@
+Diagnostics:
+  ClangTidy:
+    Add:
+      - clang-analyzer-*
+      - cppcoreguidelines-*
+      - modernize-*
+      - performance-*
+      - readability-*
+    Remove:
+      - cppcoreguidelines-avoid-const-or-ref-data-members
+      - readability-convert-member-functions-to-static
