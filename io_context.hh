@@ -4,6 +4,7 @@
 #include <set>
 #include <stdexcept>
 #include <sys/epoll.h>
+#include <vector>
 
 #include "socket_accept_operation.hh"
 #include "socket_recv_operation.hh"
@@ -16,7 +17,7 @@ struct oneway_task {
     struct promise_type {
         std::suspend_never initial_suspend() noexcept { return {}; }
         std::suspend_never final_suspend() noexcept { return {}; }
-        void unhandled_exception() { std::terminate(); }
+        void unhandled_exception() { }
         oneway_task get_return_object() { return {}; }
         void return_void() { }
     };
@@ -51,4 +52,6 @@ private:
     void watchWrite(Socket* socket);
     void unwatchWrite(Socket* socket);
     void detach(Socket* socket);
+
+    void cleanIO();
 };

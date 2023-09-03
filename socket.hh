@@ -11,12 +11,12 @@
 #include "socket_recv_operation.hh"
 #include "socket_send_operation.hh"
 
-class Socket {
+class Socket : std::enable_shared_from_this<Socket> {
 public:
     /* Listen tcp non blocking socket */
     Socket(std::string_view port, IOContext& io_context);
     Socket(const Socket&) = delete;
-    Socket(Socket&& socket);
+    Socket(Socket&& socket) noexcept;
 
     ~Socket();
 
@@ -49,11 +49,24 @@ private:
     friend SocketSendOperation;
     IOContext& io_context_;
     int fd_ = -1;
+    struct addrinfo* addr_res = nullptr;
     friend IOContext;
     uint32_t io_state_ = 0;
     uint32_t io_new_state_ = 0;
+    bool canceled = false;
 
     explicit Socket(int fd, IOContext& io_context);
-    std::coroutine_handle<> coroRecv_;
-    std::coroutine_handle<> coroSend_;
+    std::coroutine_handle<> coroRecv_ = nullptr;
+    std::coroutine_handle<> coroSend_ = nullptr;
+
+    void cancel()
+    {
+        canceled = true;
+        if (coroRecv_ && !coroRecv_.done()) {
+            coroRecv_.resume();
+        }
+        if (coroSend_ && !coroSend_.done()) {
+            coroSend_.resume();
+        }
+    }
 };

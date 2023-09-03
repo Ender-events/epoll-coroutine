@@ -1,23 +1,57 @@
 #include "io_context.hh"
 
+#include <bits/types/sigset_t.h>
+#include <csignal>
 #include <stdexcept>
+#include <sys/signalfd.h>
 
 #include "socket.hh"
 
 void IOContext::run()
 {
+    sigset_t mask;
+    if (sigemptyset(&mask) == -1) {
+        throw std::runtime_error{"sigemptyset"};
+    }
+    if (sigaddset(&mask, SIGINT)) {
+        throw std::runtime_error{"sigaddset"};
+    }
+    if (sigprocmask(SIG_BLOCK, &mask, nullptr) == -1) {
+        throw std::runtime_error{"sigprocmask"};
+    }
+    auto sigint_fd = signalfd(-1, &mask, 0);
+    if (sigint_fd == -1) {
+        throw std::runtime_error{"signalfd"};
+    }
+    {
+        struct epoll_event ev;
+        ev.events = EPOLLIN;
+        ev.data.fd = sigint_fd;
+        if (epoll_ctl(fd_, EPOLL_CTL_ADD, sigint_fd, &ev) == -1) {
+            throw std::runtime_error{"epoll_ctl: attach signal"};
+        }
+    }
+
     struct epoll_event ev, events[max_events];
-    for (;;) {
-        auto nfds = epoll_wait(fd_, events, max_events, -1);
+    bool loop_run = true;
+
+    while (loop_run) {
+        auto nfds = epoll_pwait(fd_, events, max_events, -1, &mask);
+        std::cout << "toto: " << nfds << '\n';
         if (nfds == -1)
             throw std::runtime_error{"epoll_wait"};
 
         for (int n = 0; n < nfds; ++n) {
-            auto socket = static_cast<Socket*>(events[n].data.ptr);
+            const auto& event = events[n];
+            if (event.data.fd == sigint_fd) {
+                loop_run = false;
+                continue;
+            }
+            auto socket = static_cast<Socket*>(event.data.ptr);
 
-            if (events[n].events & EPOLLIN)
+            if (event.events & EPOLLIN)
                 socket->resumeRecv();
-            if (events[n].events & EPOLLOUT)
+            if (event.events & EPOLLOUT)
                 socket->resumeSend();
         }
         for (auto* socket : processedSockets) {
@@ -31,6 +65,7 @@ void IOContext::run()
             socket->io_state_ = io_state;
         }
     }
+    cleanIO();
 }
 
 void IOContext::spawn(std::lazy<>&& task)
@@ -82,4 +117,11 @@ void IOContext::detach(Socket* socket)
         exit(EXIT_FAILURE);
     }
     processedSockets.erase(socket);
+}
+
+void IOContext::cleanIO()
+{
+    for (auto* socket : processedSockets) {
+        socket->cancel();
+    }
 }

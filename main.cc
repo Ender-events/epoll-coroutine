@@ -2,6 +2,7 @@
 #include "socket.hh"
 
 #include "lazy.hh"
+#include <exception>
 
 std::lazy<bool> inside_loop(Socket& socket)
 {
@@ -33,12 +34,16 @@ std::lazy<> echo_socket(std::shared_ptr<Socket> socket)
 
 std::lazy<> accept(Socket& listen)
 {
-    while (true) {
-        auto task = listen.accept();
-        std::cout << "co_await task\n";
-        auto socket = co_await task;
-        auto t = echo_socket(socket);
-        listen.getContext().spawn(std::move(t));
+    try {
+        while (true) {
+            auto task = listen.accept();
+            std::cout << "co_await task\n";
+            auto socket = co_await task;
+            auto t = echo_socket(socket);
+            listen.getContext().spawn(std::move(t));
+        }
+    } catch (const std::exception& e) {
+        std::cout << "exception (accept): " << e.what() << '\n';
     }
 }
 
@@ -46,7 +51,9 @@ int main()
 {
     IOContext io_context{};
     Socket listen{"3490", io_context};
-    io_context.spawn(accept(listen));
+    auto t = accept(listen);
+    // t.sync_await();
+    io_context.spawn(std::move(t));
 
     io_context.run();
 }

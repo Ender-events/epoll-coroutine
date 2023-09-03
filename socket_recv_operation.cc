@@ -22,6 +22,9 @@ SocketRecvOperation::~SocketRecvOperation()
 
 ssize_t SocketRecvOperation::syscall()
 {
+    if (socket->canceled) {
+        throw std::runtime_error{"recv canceled"};
+    }
     std::cout << "recv(" << socket->fd_ << ", buffer_, " << len_ << ", 0)\n";
     return recv(socket->fd_, buffer_, len_, 0);
 }

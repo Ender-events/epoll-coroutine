@@ -5,8 +5,8 @@
 #include "socket.hh"
 
 SocketSendOperation::SocketSendOperation(Socket* socket,
-        void* buffer,
-        std::size_t len)
+    void* buffer,
+    std::size_t len)
     : BlockSyscall{}
     , socket{socket}
     , buffer_{buffer}
@@ -24,6 +24,9 @@ SocketSendOperation::~SocketSendOperation()
 
 ssize_t SocketSendOperation::syscall()
 {
+    if (socket->canceled) {
+        throw std::runtime_error{"send canceled"};
+    }
     std::cout << "send(" << socket->fd_ << ", buffer_, len_, 0)\n";
     return send(socket->fd_, buffer_, len_, 0);
 }
@@ -32,5 +35,3 @@ void SocketSendOperation::suspend()
 {
     socket->coroSend_ = awaitingCoroutine_;
 }
-
-

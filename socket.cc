@@ -12,18 +12,18 @@
 Socket::Socket(std::string_view port, IOContext& io_context)
     : io_context_{io_context}
 {
-    struct addrinfo hints, *res;
+    struct addrinfo hints;
 
     std::memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC; // use IPv4 or IPv6, whichever
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE; // fill in my IP for me
 
-    getaddrinfo(NULL, port.data(), &hints, &res);
-    fd_ = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+    getaddrinfo(nullptr, port.data(), &hints, &addr_res);
+    fd_ = socket(addr_res->ai_family, addr_res->ai_socktype, addr_res->ai_protocol);
     int opt;
     setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof opt);
-    if (bind(fd_, res->ai_addr, res->ai_addrlen) == -1)
+    if (bind(fd_, addr_res->ai_addr, addr_res->ai_addrlen) == -1)
         throw std::runtime_error{"bind"};
     listen(fd_, 8);
     fcntl(fd_, F_SETFL, O_NONBLOCK);
@@ -31,13 +31,14 @@ Socket::Socket(std::string_view port, IOContext& io_context)
     io_context_.watchRead(this);
 }
 
-Socket::Socket(Socket&& socket)
+Socket::Socket(Socket&& socket) noexcept
     : io_context_{socket.io_context_}
     , fd_{socket.fd_}
     , io_state_{socket.io_state_}
     , io_new_state_{socket.io_new_state_}
 {
     socket.fd_ = -1;
+    std::swap(addr_res, socket.addr_res);
 }
 
 Socket::~Socket()
@@ -45,6 +46,7 @@ Socket::~Socket()
     if (fd_ == -1)
         return;
     io_context_.detach(this);
+    freeaddrinfo(addr_res);
     std::cout << "close(" << fd_ << ")\n";
     close(fd_);
 }

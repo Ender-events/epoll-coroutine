@@ -20,10 +20,13 @@ SocketAcceptOperation::~SocketAcceptOperation()
 
 int SocketAcceptOperation::syscall()
 {
+    if (socket->canceled) {
+        throw std::runtime_error{"accept canceled"};
+    }
     struct sockaddr_storage their_addr;
     socklen_t addr_size = sizeof their_addr;
     std::cout << "accept(" << socket->fd_ << ", ...)\n";
-    return accept(socket->fd_, (struct sockaddr *) &their_addr, &addr_size);
+    return accept(socket->fd_, (struct sockaddr*)&their_addr, &addr_size);
 }
 
 void SocketAcceptOperation::suspend()
