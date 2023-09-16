@@ -41,6 +41,7 @@ private:
 
     // Fill it by watchRead / watchWrite
     std::set<Socket*> processedSockets;
+    std::vector<std::lazy<>> delayDestructor;
 
     friend Socket;
     friend SocketAcceptOperation;

@@ -2,6 +2,7 @@
 
 #include <bits/types/sigset_t.h>
 #include <csignal>
+#include <exception>
 #include <stdexcept>
 #include <sys/signalfd.h>
 
@@ -70,9 +71,13 @@ void IOContext::run()
 
 void IOContext::spawn(std::lazy<>&& task)
 {
-    [](std::lazy<> t) -> oneway_task {
-        co_await t;
-    }(std::move(task));
+    [](std::lazy<> t, IOContext* ctx) -> oneway_task {
+        try {
+            co_await t;
+        } catch (const std::exception& e) {
+            ctx->delayDestructor.push_back(std::move(t));
+        }
+    }(std::move(task), this);
 }
 
 void IOContext::attach(Socket* socket)
@@ -121,7 +126,10 @@ void IOContext::detach(Socket* socket)
 
 void IOContext::cleanIO()
 {
-    for (auto* socket : processedSockets) {
+    delayDestructor.reserve(processedSockets.size());
+    // stole processedSockets to avoid iterator invalidation
+    for (auto* socket : std::move(processedSockets)) {
         socket->cancel();
     }
+    delayDestructor.clear();
 }
