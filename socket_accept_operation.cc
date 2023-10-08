@@ -29,7 +29,7 @@ int SocketAcceptOperation::syscall()
     return accept(socket->fd_, (struct sockaddr*)&their_addr, &addr_size);
 }
 
-void SocketAcceptOperation::suspend()
+void SocketAcceptOperation::suspend(std::coroutine_handle<> awaitingCoroutine)
 {
-    socket->coroRecv_ = awaitingCoroutine_;
+    socket->coroRecv_ = awaitingCoroutine;
 }

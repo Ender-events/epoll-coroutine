@@ -13,7 +13,7 @@ public:
     ~SocketRecvOperation();
 
     ssize_t syscall();
-    void suspend();
+    void suspend(std::coroutine_handle<> awaitingCoroutine);
 
 private:
     Socket* socket;

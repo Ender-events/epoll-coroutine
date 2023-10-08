@@ -19,11 +19,10 @@ public:
     bool await_suspend(std::coroutine_handle<> awaitingCoroutine)
     {
         static_assert(std::is_base_of_v<BlockSyscall, SyscallOpt>);
-        awaitingCoroutine_ = awaitingCoroutine;
         returnValue_ = static_cast<SyscallOpt*>(this)->syscall();
         haveSuspend_ = returnValue_ == -1 && (errno == EAGAIN || errno == EWOULDBLOCK);
         if (haveSuspend_)
-            static_cast<SyscallOpt*>(this)->suspend();
+            static_cast<SyscallOpt*>(this)->suspend(awaitingCoroutine);
 
         return haveSuspend_;
     }
@@ -38,6 +37,5 @@ public:
 
 protected:
     bool haveSuspend_;
-    std::coroutine_handle<> awaitingCoroutine_;
     ReturnValue returnValue_;
 };

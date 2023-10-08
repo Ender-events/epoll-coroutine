@@ -7,17 +7,16 @@
 
 class Socket;
 
-class SocketSendOperation : public BlockSyscall<SocketSendOperation, ssize_t>
-{
+class SocketSendOperation : public BlockSyscall<SocketSendOperation, ssize_t> {
 public:
     SocketSendOperation(Socket* socket, void* buffer, std::size_t len);
     ~SocketSendOperation();
 
     ssize_t syscall();
-    void suspend();
+    void suspend(std::coroutine_handle<> awaitingCoroutine);
+
 private:
     Socket* socket;
     void* buffer_;
     std::size_t len_;
 };
-

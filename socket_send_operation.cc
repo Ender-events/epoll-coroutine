@@ -31,7 +31,7 @@ ssize_t SocketSendOperation::syscall()
     return send(socket->fd_, buffer_, len_, 0);
 }
 
-void SocketSendOperation::suspend()
+void SocketSendOperation::suspend(std::coroutine_handle<> awaitingCoroutine)
 {
-    socket->coroSend_ = awaitingCoroutine_;
+    socket->coroSend_ = awaitingCoroutine;
 }

@@ -29,7 +29,7 @@ ssize_t SocketRecvOperation::syscall()
     return recv(socket->fd_, buffer_, len_, 0);
 }
 
-void SocketRecvOperation::suspend()
+void SocketRecvOperation::suspend(std::coroutine_handle<> awaitingCoroutine)
 {
-    socket->coroRecv_ = awaitingCoroutine_;
+    socket->coroRecv_ = awaitingCoroutine;
 }

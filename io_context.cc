@@ -38,7 +38,6 @@ void IOContext::run()
 
     while (loop_run) {
         auto nfds = epoll_pwait(fd_, events, max_events, -1, &mask);
-        std::cout << "toto: " << nfds << '\n';
         if (nfds == -1)
             throw std::runtime_error{"epoll_wait"};
 
@@ -55,7 +54,7 @@ void IOContext::run()
             if (event.events & EPOLLOUT)
                 socket->resumeSend();
         }
-        for (auto* socket : processedSockets) {
+        for (auto* socket : processedSockets_) {
             auto io_state = socket->io_new_state_;
             if (socket->io_state_ == io_state)
                 continue;
@@ -75,7 +74,7 @@ void IOContext::spawn(std::lazy<>&& task)
         try {
             co_await t;
         } catch (const std::exception& e) {
-            ctx->delayDestructor.push_back(std::move(t));
+            ctx->delayDestructor_.push_back(std::move(t));
         }
     }(std::move(task), this);
 }
@@ -94,25 +93,25 @@ void IOContext::attach(Socket* socket)
 void IOContext::watchRead(Socket* socket)
 {
     socket->io_new_state_ = socket->io_state_ | EPOLLIN;
-    processedSockets.insert(socket);
+    processedSockets_.insert(socket);
 }
 
 void IOContext::unwatchRead(Socket* socket)
 {
     socket->io_new_state_ = socket->io_state_ & ~EPOLLIN;
-    processedSockets.insert(socket);
+    processedSockets_.insert(socket);
 }
 
 void IOContext::watchWrite(Socket* socket)
 {
     socket->io_new_state_ = socket->io_state_ | EPOLLOUT;
-    processedSockets.insert(socket);
+    processedSockets_.insert(socket);
 }
 
 void IOContext::unwatchWrite(Socket* socket)
 {
     socket->io_new_state_ = socket->io_state_ & ~EPOLLOUT;
-    processedSockets.insert(socket);
+    processedSockets_.insert(socket);
 }
 
 void IOContext::detach(Socket* socket)
@@ -121,15 +120,15 @@ void IOContext::detach(Socket* socket)
         perror("epoll_ctl: detach");
         exit(EXIT_FAILURE);
     }
-    processedSockets.erase(socket);
+    processedSockets_.erase(socket);
 }
 
 void IOContext::cleanIO()
 {
-    delayDestructor.reserve(processedSockets.size());
-    // stole processedSockets to avoid iterator invalidation
-    for (auto* socket : std::move(processedSockets)) {
+    delayDestructor_.reserve(processedSockets_.size());
+    // stole processedSockets_ to avoid iterator invalidation
+    for (auto* socket : std::move(processedSockets_)) {
         socket->cancel();
     }
-    delayDestructor.clear();
+    delayDestructor_.clear();
 }

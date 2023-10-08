@@ -7,17 +7,16 @@
 
 class Socket;
 
-class SocketAcceptOperation : public BlockSyscall<SocketAcceptOperation, int>
-{
+class SocketAcceptOperation : public BlockSyscall<SocketAcceptOperation, int> {
 public:
     SocketAcceptOperation(Socket* socket);
     ~SocketAcceptOperation();
 
     int syscall();
-    void suspend();
+    void suspend(std::coroutine_handle<> awaitingCoroutine);
+
 private:
     Socket* socket;
     void* buffer_;
     std::size_t len_;
 };
-

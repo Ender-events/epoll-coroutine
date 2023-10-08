@@ -40,8 +40,8 @@ private:
     const int fd_;
 
     // Fill it by watchRead / watchWrite
-    std::set<Socket*> processedSockets;
-    std::vector<std::lazy<>> delayDestructor;
+    std::set<Socket*> processedSockets_;
+    std::vector<std::lazy<>> delayDestructor_;
 
     friend Socket;
     friend SocketAcceptOperation;
